@@ -5,6 +5,7 @@ from torch.amp import autocast
 from torch.optim import AdamW
 from tokenizers import Tokenizer
 import json
+import matplotlib.pyplot as plt 
 
 from language_model_from_scratch import language_model
 from dataset import Hugo_PretokenizedDataset
@@ -61,6 +62,8 @@ optim_groups = [
 
 optimizer = AdamW(optim_groups, lr=learning_rate, betas=(beta1, beta2), eps=1e-8)
 
+train_losses = []
+val_losses = []
 # 5. Boucle Principale
 for epoch in range(num_epochs):
     train_ds.training_shuffler()
@@ -104,10 +107,14 @@ for epoch in range(num_epochs):
     
     avg_train_loss = total_train_loss / len(train_loader)
     avg_val_loss = total_val_loss / len(eval_loader)
+
+    train_losses.append(avg_train_loss)
+    val_losses.append(avg_val_loss)
             
     print(f"Epoch {epoch+1} | Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f}")
 
-    checkpoint = {
+    if epoch%5 == 0:
+        checkpoint = {
         "epoch": epoch + 1,
         "model_state_dict": model.state_dict(),
         "optimizer_state_dict": optimizer.state_dict(),
@@ -120,6 +127,17 @@ for epoch in range(num_epochs):
             "n_groups": n_groups,
             "vocab_size": tokenizer.get_vocab_size(),
             "seq_len": seq_len,
-        },
-    }
-    torch.save(checkpoint, f"checkpoint_epoch{epoch+1}.pt")
+            },
+        }
+        torch.save(checkpoint, f"checkpoint_epoch{epoch+1}.pt")
+
+plt.figure(figsize=(8, 5))
+plt.plot(train_losses, label="train loss", marker="o")
+plt.plot(val_losses, label="val loss", marker="o")
+plt.xlabel("epoch")
+plt.ylabel("loss")
+plt.title("Training / Validation Loss")
+plt.grid(True, alpha=0.3)
+plt.legend()
+plt.tight_layout()
+plt.savefig("loss_curve.png")
