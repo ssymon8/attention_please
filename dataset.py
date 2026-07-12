@@ -3,38 +3,39 @@ from torch.utils.data import Dataset, DataLoader
 import json
 
 class Hugo_PretokenizedDataset(Dataset):
-    def __init__(self, text_file_path, tokenizer, seq_len: int = 512, trainer = True):
+    def __init__(self, tokens, seq_len: int = 512, trainer=True):
         super().__init__()
-
-        self.seq_len = seq_len
-        self.trainer = trainer
-
-        with open(text_file_path, 'r', encoding = 'utf-8') as f:
-            raw_text = f.read()
-        
-        tokenized = tokenizer.encode(raw_text)
-
-        #liste des tokens de notre fichier
-        self.tokens = torch.tensor(encoded.ids, dtype = torch.long)
-
-        self.num_samples = (len(self.tokens)-1)// self.seq_len
+        # tokens peut être une list[int] ou un tenseur ; on normalise en LongTensor
+        self.tokens = torch.tensor(tokens, dtype=torch.long)
+        self.seq_len = int(seq_len)
+        self.trainer = bool(trainer)
         self.offset = 0
-    
+        self.num_samples = max(0, (len(self.tokens) - 1) // self.seq_len)
+
     def training_shuffler(self):
-        if self.trainer:
-            self.offset = torch.randint(0, self.seq_len, (1,)).item()
-            self.num_samples = (len(self.tokens) - 1 - self.offset) // self.seq_len
-    
+        if self.trainer and len(self.tokens) > 1:
+            # offset dans [0, seq_len-1], mais pas plus long que len(tokens)-2
+            max_offset = min(self.seq_len - 1, max(0, len(self.tokens) - 2))
+            self.offset = torch.randint(0, max_offset + 1, (1,)).item() if max_offset > 0 else 0
+            self.num_samples = max(0, (len(self.tokens) - 1 - self.offset) // self.seq_len)
+
     def __len__(self):
-        return self.num_samples
+        return max(0, self.num_samples)
 
     def __getitem__(self, idx):
-        # calcul de la position de départ dans le grand vecteur de tokens
+        if idx < 0:
+            idx = self.num_samples + idx
+        if idx < 0 or idx >= self.num_samples:
+            raise IndexError("Index out of range")
         start_idx = self.offset + (idx * self.seq_len)
         end_idx = start_idx + self.seq_len
-        
-        # extraction de X et Y (décalé de 1)
+
+        # slicing sur LongTensor -> tensors longs
         x = self.tokens[start_idx:end_idx]
-        y = self.tokens[start_idx+1:end_idx+1]
-        
+        y = self.tokens[start_idx + 1:end_idx + 1]
+
+        # garantir la bonne taille (peut être utile pour debug)
+        if x.shape[0] != self.seq_len or y.shape[0] != self.seq_len:
+            raise RuntimeError(f"Unexpected sample length: got {x.shape[0]} (expected {self.seq_len})")
+
         return x, y
