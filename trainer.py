@@ -17,7 +17,7 @@ n_groups = 8
 
 #config training
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-num_epochs = 5
+num_epochs = 20
 batch_size = 16
 seq_len = 512
 max_grad_norm = 1.0
@@ -103,3 +103,20 @@ for epoch in range(num_epochs):
             total_val_loss += val_loss.item()
             
     print(f"Epoch {epoch+1} | Train Loss: {total_train_loss/len(train_loader):.4f} | Val Loss: {total_val_loss/len(eval_loader):.4f}")
+
+    checkpoint = {
+        "epoch": epoch + 1,
+        "model_state_dict": model.state_dict(),
+        "optimizer_state_dict": optimizer.state_dict(),
+        "train_loss": avg_train_loss,
+        "val_loss": avg_val_loss,
+        "config": {
+            "num_layers": num_layers,
+            "d_hidden": d_hidden,
+            "n_heads": n_heads,
+            "n_groups": n_groups,
+            "vocab_size": tokenizer.get_vocab_size(),
+            "seq_len": seq_len,
+        },
+    }
+    torch.save(checkpoint, f"checkpoint_epoch{epoch+1}.pt")
