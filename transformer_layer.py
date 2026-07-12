@@ -35,7 +35,23 @@ class GQA_layer(nn.Module):
         k = k.view(B, T, self.n_groups, 1, self.d_heads)
         v = v.view(B, T, self.n_groups, 1, self.d_heads)
 
-        scores = torch.einsum('btsgd, bnsgd -> bgstn', q, k) * self.scale
+        positions = torch.arange(T, device = X.device)
+        inv_freq = 1.0/ (10000**(torch.arange(0, self.d_heads, 2, device = X.device).float()/self.d_heads))
+        freqs = torch.einsum('i, j -> ij', positions.float(), inv_freq) #on se retrouve avec une matrice des position* theta dim (T, d_heads/2)
+
+        cos = torch.cos(freqs).repeat_interleave(2, dim= -1) #on répète 2 fois toutes les fréquences pour avoir dim = (T, d_heads)
+        sin = torch.sin(freqs).repeat_interleave(2, dim= -1)
+
+        #ici on obtient des matrices de positionnal embeddings de la mm taille qu'une matrice q/k d'une head
+        #on vva reshape pour broadcast sur nos queries values
+
+        cos = cos.view(1, T, 1, 1, self.d_heads)
+        sin = sin.view(1, T, 1, 1, self.d_heads)
+
+        q_rot = self.apply_RoPE(q, cos, sin)
+        k_rot = self.apply_RoPE(k, cos, sin)
+
+        scores = torch.einsum('btsgd, bnsgd -> bgstn', q_rot, k_rot) * self.scale
 
         if self.causal:
             mask = torch.triu(torch.ones(T, T, device= X.device, dtype=torch.bool), diagonal = 1)
@@ -48,6 +64,15 @@ class GQA_layer(nn.Module):
         out = out.reshape(B, T, self.n_heads * self.d_heads)
 
         return self.W_O(out)
+    
+    def rotate_half(self, X: torch.Tensor):
+        d= X.shape[-1]
+        x0, x1 = X[..., :d//2], X[...,d//2:]
+        return torch.cat((-x1, x0), dim = -1)
+
+    def apply_RoPE(self, X: torch.Tensor, cos, sin):
+        X_rot = X* cos + self.rotate_half(X) * sin
+        return X_rot
 
 
 class transformer(nn.Module):
