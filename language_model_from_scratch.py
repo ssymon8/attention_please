@@ -32,6 +32,6 @@ if __name__ == "__main__":
     X = torch.Tensor([[1,2,5,6,2,4]]).long() #B= 1, T = 6
 
     lm = language_model(num_layers = 2, d_hidden = 256, n_groups = 2, n_heads = 4, vocab_size = vocab_size)
-
-    print(f"input tensor {X} outputs {lm(X)}")
+    out = lm(X)
+    print(f"input tensor {X} outputs {out} of shape {out.shape}")
 
