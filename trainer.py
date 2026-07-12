@@ -101,8 +101,11 @@ for epoch in range(num_epochs):
                 val_loss = F.cross_entropy(logits.view(-1, logits.size(-1)), y.view(-1))
                 
             total_val_loss += val_loss.item()
+    
+    avg_train_loss = total_train_loss / len(train_loader)
+    avg_val_loss = total_val_loss / len(eval_loader)
             
-    print(f"Epoch {epoch+1} | Train Loss: {total_train_loss/len(train_loader):.4f} | Val Loss: {total_val_loss/len(eval_loader):.4f}")
+    print(f"Epoch {epoch+1} | Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f}")
 
     checkpoint = {
         "epoch": epoch + 1,
