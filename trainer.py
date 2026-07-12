@@ -10,15 +10,15 @@ from language_model_from_scratch import language_model
 from dataset import Hugo_PretokenizedDataset
 
 #config model
-num_layers = 1
-d_hidden= 512
+num_layers = 3
+d_hidden= 1024
 n_heads = 32
 n_groups = 8
 
 #config training
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-num_epochs = 1
-batch_size = 1
+num_epochs = 5
+batch_size = 16
 seq_len = 512
 max_grad_norm = 1.0
 
@@ -71,7 +71,7 @@ for epoch in range(num_epochs):
         x = x.long().to(device, non_blocking=True)
         y = y.long().to(device, non_blocking=True)
 
-        print(f"processing {x} and {y}")
+        #print(f"processing {x} and {y}")
 
         with autocast(device_type="cuda", dtype=torch.bfloat16):
             logits = model(x)  # [B, T, vocab_size]
