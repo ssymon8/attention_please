@@ -1,4 +1,4 @@
-from tokenizers import Tokenizer
+from tokenizers import Tokenizer, decoders
 from tokenizers.models import BPE
 from tokenizers.trainers import BpeTrainer
 from tokenizers.pre_tokenizers import Whitespace
@@ -14,11 +14,12 @@ for p in sorted(dossier.iterdir()):
         fichiers.append(f"./victor/" +p.name)
 
 print("init du tokenizer \n")
-tokenizer = Tokenizer(BPE(unk_token="[UNK]"))
+tokenizer = Tokenizer(BPE(unk_token="[UNK]", continuing_subword_prefix="##"))
 tokenizer.pre_tokenizer = Whitespace()
+tokenizer.decoder = decoders.BPEDecoder(suffix="##")
 
 print("training...")
-trainer =  BpeTrainer(special_tokens=["[UNK]", "[PAD]", "[BOS]", "[EOS]"], vocab_size= 8192)
+trainer =  BpeTrainer(special_tokens=["[UNK]", "[PAD]", "[BOS]", "[EOS]"], vocab_size= 8192, continuing_subword_prefix="##")
 tokenizer.train(files = fichiers, trainer=trainer)
 
 print("saving...")
