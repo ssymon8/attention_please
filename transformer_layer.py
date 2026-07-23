@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from SwiGLU_ffn import SwiGLU
 
 #from grouped_query_attention import GQA_layer
 
@@ -84,11 +85,13 @@ class transformer(nn.Module):
         #RMSnorm
         self.rms_norm_ffn = nn.RMSNorm((d_hidden,), eps = 1e-5)
         #our GeLu MLP
-        self.MLP = nn.Sequential(
-            nn.Linear(d_hidden, 4*d_hidden),
-            nn.GELU(),
-            nn.Linear(4*d_hidden, d_hidden)
-        )
+        #self.MLP = nn.Sequential(
+        #    nn.Linear(d_hidden, 4*d_hidden),
+        #    nn.GELU(),
+        #    nn.Linear(4*d_hidden, d_hidden)
+        #)
+
+        self.FFN = SwiGLU(d_hidden)
         #init the weights
         self.apply(self._init_weights)
     
@@ -110,7 +113,7 @@ class transformer(nn.Module):
         X_1 = attn+X
         X_norm_1 = self.rms_norm_ffn(X_1)
 
-        return self.MLP(X_norm_1) + X_1
+        return self.FFN(X_norm_1) + X_1
 
 
 if __name__ == "__main__":
