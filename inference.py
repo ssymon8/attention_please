@@ -14,7 +14,7 @@ tokenizer = Tokenizer.from_file("hugo_tokenizer.json")
 
 model = language_model(num_layers = num_layers, n_heads = n_heads, n_groups = n_groups, d_hidden = d_hidden, vocab_size = tokenizer.get_vocab_size()).to(device)
 
-checkpoint_path = "./checkpoints2/checkpoint_epoch50.pt" 
+checkpoint_path = "./checkpoints3/checkpoint_epoch50.pt" 
 checkpoint = torch.load(checkpoint_path, map_location=device)
 
 if 'model_state_dict' in checkpoint:
